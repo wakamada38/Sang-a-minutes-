@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sang'a Comprehensive School – Minutes Writer</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Arial, sans-serif; }
+  body { background:#e; color:#222; }
+  header { background:#1a3c6e; color:#fff; padding:18px 30px; display:flex; align-items:center; gap:14px; }
+  header .logo { width:44px; height:44px; background:#f0b429; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#1a3c6e; }
+  header h1 { font-size:20px; } header p { font-size:12px; opacity:.8; }
+  .tabs { display:flex; background:#12304f; }
+  .tabs button { flex:1; background:none; border:none; color:#cfe0f5; padding:12px; cursor:pointer; font-size:15px; }
+  .tabs button.active { background:#1a3c6e; color:#f0b429; font-weight:bold; }
+  .container { max-width:1000px; margin:25px auto; padding:0 16px; }
+  .card { background:#fff; border-radius:10px; padding:22px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+  h2 { color:#1a3c6e; margin-bottom:14px; font-size:17px; border-bottom:2px solid #f0b429; padding-bottom:6px; }
+  label { display:block; font-weight:600; margin:10px 0 4px; font-size:14px; }
+  input[type=text], input[type=date], input[type=time], input[type=email], input[type=password], textarea, select {
+    width:100%; padding:9px 11px; border:1px solid #c8d2e0; border-radius:6px; font-size:14px; }
+  textarea { resize:vertical; min-height:70px; }
+  .row { display:flex; gap:14px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:180px; }
+  button { background:#1a3c6e; color:#fff; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-size:14px; margin:10px 6px 0 0; }
+  button:hover { background:#27538f; }
+  button.alt { background:#f0b429; color:#1a3c6e; }
+  button.danger { background:#c0392b; }
+  button.small { padding:5px 10px; font-size:12px; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; }
+  th, td { border:1px solid #c8d2e0; padding:8px; font-size:14px; text-align:left; }
+  th { background:#1a3c6e; color:#fff; }
+  .muted { color:#777; font-size:13px; }
+  #preview { background:#fff; border:1px solid #c8d2e0; padding:30px; }
+  #preview h3 { text-align:center; color:#1a3c6e; }
+  .sig { margin-top:50px; display:flex; justify-content:space-between; }
+  .sig div { width:40%; border-top:1px solid #333; padding-top:5px; font-size:13px; }
+  .checkboxes { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:8px; margin-top:8px; }
+  .checkboxes label { font-weight:normal; display:flex; align-items:center; gap:8px; background:#f4f7fb; padding:7px 10px; border-radius:6px; }
+  @media print { .no-print { display:none !important; } body { background:#fff; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SC</div>
+  <div><h1>Sang'a Comprehensive School</h1><p>Minutes Writing System — Cloud Edition</p></div>
+</header>
+
+<div class="tabs no-print">
+  <button id="loginTabBtn" class="active" onclick="showTab('login',this)">🔐 Login</button>
+  <button onclick="showTab('write',this)">✍️ Write Minutes</button>
+  <button onclick="showTab('members',this)">👥 Members</button>
+  <button onclick="showTab('archive',this)">🗄️ Archive</button>
+</div>
+
+<div class="container">
+
+<!-- LOGIN -->
+<div id="tab-login">
+  <div class="card no-print" style="max-width:420px;margin:auto">
+    <h2>Staff Login</h2>
+    <label>Email</label><input type="email" id="loginEmail">
+    <label>Password</label><input type="password" id="loginPass">
+    <button onclick="login()">Sign In</button>
+    <button class="alt" onclick="signup()">Register New User</button>
+    <button class="danger" id="logoutBtn" style="display:none" onclick="logout()">Sign Out (<span id="whoami"></span>)</button>
+    <p class="muted" id="loginMsg" style="margin-top:10px"></p>
+  </div>
+</div>
+
+<!-- WRITE -->
+<div id="tab-write" style="display:none">
+  <div class="card no-print">
+    <h2>1. Meeting Details</h2>
+    <div class="row">
+      <div><label>Meeting Type</label>
+        <select id="mType">
+          <option>Staff Meeting</option><option>Board of Management (BOM)</option>
+          <option>Parents' Meeting</option><option>Departmental Meeting</option>
+          <option>PTA Meeting</option><option>Other</option>
+        </select></div>
+      <div><label>Date</label><input type="date" id="mDate"></div>
+      <div><label>Venue</label><input type="text" id="mVenue" value="Main Hall, Sang'a Comprehensive School"></div>
+    </div>
+    <div class="row">
+      <div><label>Start Time</label><input type="time" id="mStart"></div>
+      <div><label>End Time</label><input type="time" id="mEnd"></div>
+      <div><label>Chairperson</label><input type="text" id="mChair"></div>
+      <div><label>Secretary</label><input type="text" id="mSec"></div>
+    </div>
+  </div>
+
+  <div class="card no-print">
+    <h2>2. Attendance</h2>
+    <div class="checkboxes" id="memberChecks"></div>
+    <button class="small alt" onclick="refreshMembers()">↻ Refresh</button>
+    <button class="small" onclick="selectAllMembers(true)">Select all</button>
+    <button class="small" onclick="selectAllMembers(false)">Clear all</button>
+    <div class="row" style="margin-top:14px">
+      <div><label>Additional attendees (one per line)</label><textarea id="attendees"></textarea></div>
+      <div><label>Apologies (one per line)</label><textarea id="apologies"></textarea></div>
+    </div>
+  </div>
+
+  <div class="card no-print">
+    <h2>3. Agenda Items & Minutes</h2>
+    <div id="items"></div>
+    <button onclick="addItem()">+ Add Agenda Item</button>
+  </div>
+
+  <div class="card no-print">
+    <h2>4. AOB & Next Meeting</h2>
+    <textarea id="aob"></textarea>
+    <div class="row"><div><label>Date of Next Meeting</label><input type="date" id="nextDate"></div></div>
+    <button onclick="generate()">Generate Minutes</button>
+    <button class="alt" onclick="window.print()">Print / Save as PDF</button>
+    <button onclick="archiveCurrent()">🗄️ Save to Cloud Archive</button>
+  </div>
+
+  <div id="preview" class="card" style="display:none"></div>
+</div>
+
+<!-- MEMBERS -->
+<div id="tab-members" style="display:none">
+  <div class="card no-print">
+    <h2>Member Directory (shared school-wide)</h2>
+    <div class="row">
+      <div><label>Name</label><input type="text" id="mbName"></div>
+      <div><label>Title / Role</label><input type="text" id="mbRole"></div>
+      <div><label>Group</label>
+        <select id="mbGroup"><option>Staff</option><option>BOM</option><option>PTA</option><option>Other</option></select></div>
+    </div>
+    <button onclick="addMember()">+ Add Member</button>
+    <table>
+      <thead><tr><th>#</th><th>Name</th><th>Title</th><th>Group</th><th>Action</th></tr></thead>
+      <tbody id="memberBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ARCHIVE -->
+<div id="tab-archive" style="display:none">
+  <div class="card no-print">
+    <h2>School Minutes Archive (cloud)</h2>
+    <input type="text" id="searchBox" placeholder="🔍 Search..." oninput="renderArchive()">
+    <table>
+      <thead><tr><th>#</th><th>Type</th><th>Date</th><th>Chair</th><th>Actions</th></tr></thead>
+      <tbody id="archiveBody"></tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<script>
+/* ===== ⚠️ REPLACE WITH YOUR OWN VALUES FROM FIREBASE PROJECT SETTINGS ===== */
+const firebaseConfig = {
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_AUTH_DOMAIN",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_BUCKET",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId: "PASTE_YOUR_APP_ID"
+};
+/* ========================================================================= */
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+let currentUser = null, members = [], archive = [], lastMinutesHTML = '';
+
+/* ---------- helpers ---------- */
+function v(id){ return (document.getElementById(id).value || '').trim(); }
+function lines(id){ return v(id) ? v(id).split('\n').filter(x=>x.trim()) : []; }
+function fmtDate(d){ return d ? new Date(d+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : '______'; }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+function showTab(id, btn){
+  ['login','write','members','archive'].forEach(t=>document.getElementById('tab-'+t).style.display = t===id?'block':'none');
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+
+/* ---------- AUTH ---------- */
+function login(){ auth.signInWithEmailAndPassword(v('loginEmail'), v('loginPass'))
+  .catch(e => document.getElementById('loginMsg').textContent = '❌ ' + e.message); }
+function signup(){ auth.createUserWithEmailAndPassword(v('loginEmail'), v('loginPass'))
+  .catch(e => document.getElementById('loginMsg').textContent = '❌ ' + e.message); }
+function logout(){ auth.signOut(); }
+
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  document.getElementById('logoutBtn').style.display = user ? 'inline-block'
+
+> ⚠️ The response reached the length limit. Reply **continue** to get the rest.
